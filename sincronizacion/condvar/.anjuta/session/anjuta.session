@@ -1,0 +1,10 @@
+
+[Anjuta]
+Maximized=1
+Geometry=1280x748+0+25
+
+[File Loader]
+Files=file:///home/daniel/Desktop/clases_espol_2010-1/Sistemas_Operativos/2010_1/code_L06/condvar/Makefile#122%%%file:///home/daniel/Desktop/clases_espol_2010-1/Sistemas_Operativos/2010_1/code_L06/condvar/main.c#66
+
+[Execution]
+Run in terminal=2
