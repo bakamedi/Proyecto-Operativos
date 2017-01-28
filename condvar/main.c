@@ -18,22 +18,21 @@ void *imprime(void *t);
 int main (int argc, char *argv[]){
   int i, rc, numHilos = 0,numHilosC = 0,numHilosB = 0,numHilosA = 0,numHilosTotal = 0;
   long t1=1, t2=2, t3=3; //internal thread id
-  pthread_t threads[NUM_THREADS],threadsCBA[numHilosTotal];
-  pthread_attr_t attr;
+  char prioridadC = 'c', prioridadB = 'b', prioridadA = 'a';
 
-
-  printf("ingrse el numero de hilos\n");
+  printf("ingrese el numero de hilos\n");
   scanf("%i", &numHilos);
 
   numHilosC = numHilos;
   numHilosB = numHilos/2;
   numHilosA = numHilos/4;
-
+  numHilosTotal = numHilosA+numHilosB+numHilosC;
   if(numHilosA == 0){
     numHilosA = 1;
   }
 
-  numHilosTotal = numHilosA+numHilosB+numHilosC;
+  pthread_attr_t attr;
+  pthread_t threadsCBA[numHilosTotal];
   /* Initialize mutex and condition variable objects */
   pthread_mutex_init(&count_mutex, NULL);
   pthread_cond_init (&count_threshold_cv, NULL);
@@ -47,30 +46,27 @@ int main (int argc, char *argv[]){
   pthread_create(&threads[2], &attr, inc_count, (void *)t3);
   */
 
-  char prioridad = '\0';
+
   for(i = 0 ; i < numHilosC ; i++){
-    prioridad = 'c';
-    printf("CCCCCCCCCCCCCCCC\n");
-    pthread_create(&threadsCBA[i], &attr, imprime, (void *) i);
+    pthread_create(&threadsCBA[i], &attr, imprime, (void *) prioridadC);
+    pthread_join(threadsCBA[i], NULL);
   }
 
   for(i = numHilosC ; i < numHilosC+numHilosB ;i++){
-    prioridad = 'b';
-    printf("BBBBBBBBBBBBBBBB\n");
-    pthread_create(&threadsCBA[i], &attr, imprime, (void *) i);
+    pthread_create(&threadsCBA[i], &attr, imprime, (void *) prioridadB);
+    pthread_join(threadsCBA[i], NULL);
   }
 
   for(i = numHilosC+numHilosB ; i < numHilosC+numHilosB+numHilosA ; i++){
-    prioridad = 'a';
-    printf("AAAAAAAAAAAAAAAA\n");
-    pthread_create(&threadsCBA[i], &attr, imprime, (void *) i);
+    pthread_create(&threadsCBA[i], &attr, imprime, (void *) prioridadA);
+    pthread_join(threadsCBA[i], NULL);
   }
 
-  /* Wait for all threads to complete */
+  /* Wait for all threads to complete
   for (i=0; i<numHilosTotal; i++) {
     //printf("%i\n", i);
     pthread_join(threadsCBA[i], NULL);
-  }
+  }*/
 
   /* Clean up and exit */
   pthread_attr_destroy(&attr);
@@ -81,8 +77,8 @@ int main (int argc, char *argv[]){
 }
 
 void *imprime(void *t){
-  long c = (long) t;
-  printf("%ld\n", c);
+  char c = (char) t;
+  printf("%c\n", c);
 }
 
 void *inc_count(void *t)
@@ -124,4 +120,3 @@ void *watch_count(void *t)
   pthread_mutex_unlock(&count_mutex);
   pthread_exit(NULL);
 }
-
