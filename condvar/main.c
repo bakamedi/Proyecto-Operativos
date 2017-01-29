@@ -2,33 +2,53 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define NUM_THREADS  3
-#define TCOUNT 10
-#define COUNT_LIMIT 12
+typedef struct Elemento{
+    struct elemento *proximo;
+    char *nombre;
+}Elemento;
 
-int     count = 0;
-int     thread_ids[4] = {0,1,2,3};
+Elemento *primer = NULL;
+Elemento *ultimo = NULL;
+Elemento* indiceCola;
+
+int globalContC;
+int globalContB;
+int globalContA;
 pthread_mutex_t count_mutex;  //mutex for count increase critical section
 pthread_cond_t count_threshold_cv; //condition variable
 
 void *inc_count(void *t); //thread function that increases a counter
 void *watch_count(void *t); //thread function that wakes up when the counter reaches COUNT_LIMIT
 void *imprime(void *t);
+void agregar(Elemento* elemento);
+Elemento* extraer();
+char verDatoPrimerElelemento();
 
 int main (int argc, char *argv[]){
+
+  Elemento* datoEntrada;
+  indiceCola = extraer();
+  char seq[6]="ABCCCC";//dato de entrada
   int i, rc, numHilos = 0,numHilosC = 0,numHilosB = 0,numHilosA = 0,numHilosTotal = 0;
-  long t1=1, t2=2, t3=3; //internal thread id
   char prioridadC = 'c', prioridadB = 'b', prioridadA = 'a';
 
   printf("ingrese el numero de hilos\n");
   scanf("%i", &numHilos);
 
+
+
   numHilosC = numHilos;
   numHilosB = numHilos/2;
   numHilosA = numHilos/4;
   numHilosTotal = numHilosA+numHilosB+numHilosC;
+
+  globalContC = numHilosC;
+  globalContB = numHilosB;
+
+
   if(numHilosA == 0){
     numHilosA = 1;
+    globalContA = numHilosA;
   }
 
   pthread_attr_t attr;
@@ -40,12 +60,6 @@ int main (int argc, char *argv[]){
   /* Create threads in a joinable state */
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-  /*
-  pthread_create(&threads[0], &attr, watch_count, (void *)t1);
-  pthread_create(&threads[1], &attr, inc_count, (void *)t2);
-  pthread_create(&threads[2], &attr, inc_count, (void *)t3);
-  */
-
 
   for(i = 0 ; i < numHilosC ; i++){
     pthread_create(&threadsCBA[i], &attr, imprime, (void *) prioridadC);
@@ -62,11 +76,19 @@ int main (int argc, char *argv[]){
     pthread_join(threadsCBA[i], NULL);
   }
 
-  /* Wait for all threads to complete
-  for (i=0; i<numHilosTotal; i++) {
-    //printf("%i\n", i);
-    pthread_join(threadsCBA[i], NULL);
-  }*/
+  for(i = 6; i >= 0 ; i --){
+    datoEntrada = malloc(sizeof(Elemento));
+    datoEntrada->nombre = seq[i];
+    printf("%c\n", datoEntrada->nombre);
+    agregar(datoEntrada);
+  }
+
+  Elemento* indice = extraer();
+  printf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+  while(indice != NULL){
+      printf("%c\n", indice->nombre);
+      indice = extraer();
+  }
 
   /* Clean up and exit */
   pthread_attr_destroy(&attr);
@@ -76,11 +98,79 @@ int main (int argc, char *argv[]){
 
 }
 
+
+//seccion critica de los hilos
 void *imprime(void *t){
+  int contA = 0,contB = 0,contC=0;
   char c = (char) t;
-  printf("%c\n", c);
+  //printf("%c\n", c);
+  printf("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ");
+  while(indiceCola != NULL){
+    printf("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWw");
+    printf("%c\n", indiceCola->nombre);
+    if(indiceCola->nombre == 'c' && contC < globalContC){
+      contC++;
+      pthread_mutex_lock(&count_mutex);
+      indiceCola = extraer();
+      printf("%c\n", indiceCola->nombre);
+      contC--;
+      pthread_mutex_unlock(&count_mutex);
+    }
+    if(indiceCola->nombre == 'b' && contB < globalContB){
+      contB++;
+      pthread_mutex_lock(&count_mutex);
+      indiceCola = extraer();
+      printf("%c\n", indiceCola->nombre);
+      contB--;
+      pthread_mutex_unlock(&count_mutex);
+    }
+    if(indiceCola->nombre == 'a' && contA < globalContA){
+      contA++;
+      pthread_mutex_lock(&count_mutex);
+      indiceCola = extraer();
+      printf("%c\n", indiceCola->nombre);
+      contA--;
+      pthread_mutex_unlock(&count_mutex);
+    }
+  }
+
+}
+//////////funciones de la COLA////////////
+void agregar(Elemento* elemento){
+    //comprobando si la cola esta vacia
+    elemento->proximo = NULL;
+    if(primer == NULL){
+        primer = elemento;
+        ultimo = elemento;
+    }
+    else{
+        ultimo->proximo = elemento;
+        ultimo = elemento;
+    }
 }
 
+Elemento* extraer(){
+    if(primer == NULL){
+        return NULL;
+    }
+    Elemento* elementoRetorno = primer;
+    primer = primer->proximo;
+
+    return elementoRetorno;
+}
+
+char verDatoPrimerElelemento(){
+  if(primer == NULL){
+      return NULL;
+  }
+  Elemento* elemento = primer;
+  char c = (char) elemento->nombre;
+  return c;
+}
+
+////////////////////////////////////////
+
+/*
 void *inc_count(void *t)
 {
   int i;
@@ -120,3 +210,4 @@ void *watch_count(void *t)
   pthread_mutex_unlock(&count_mutex);
   pthread_exit(NULL);
 }
+*/
