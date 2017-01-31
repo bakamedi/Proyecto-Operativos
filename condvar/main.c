@@ -14,6 +14,11 @@ Elemento* indiceCola;
 int globalContC;
 int globalContB;
 int globalContA;
+
+
+int contA = 0;
+int contB = 0;
+int contC = 0;
 pthread_mutex_t count_mutex;  //mutex for count increase critical section
 pthread_cond_t count_threshold_cv; //condition variable
 
@@ -31,6 +36,18 @@ int main (int argc, char *argv[]){
   char seq[6]="ABCCCC";//dato de entrada
   int i, rc, numHilos = 0,numHilosC = 0,numHilosB = 0,numHilosA = 0,numHilosTotal = 0;
   char prioridadC = 'c', prioridadB = 'b', prioridadA = 'a';
+
+
+  //llena la cola con los caracteres CBA
+  for(i = 5; i >= 0 ; i --){
+    datoEntrada = malloc(sizeof(Elemento));
+    datoEntrada->nombre = seq[i];
+    if(datoEntrada!=NULL){
+      printf("  Datos agregado a la COLA : %c\n", datoEntrada->nombre);
+      agregar(datoEntrada);
+    }
+  }
+
 
   printf("ingrese el numero de hilos\n");
   scanf("%i", &numHilos);
@@ -76,19 +93,16 @@ int main (int argc, char *argv[]){
     pthread_join(threadsCBA[i], NULL);
   }
 
-  for(i = 6; i >= 0 ; i --){
-    datoEntrada = malloc(sizeof(Elemento));
-    datoEntrada->nombre = seq[i];
-    printf("%c\n", datoEntrada->nombre);
-    agregar(datoEntrada);
-  }
 
+  /*
   Elemento* indice = extraer();
-  printf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+  printf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
+
   while(indice != NULL){
       printf("%c\n", indice->nombre);
       indice = extraer();
   }
+  */
 
   /* Clean up and exit */
   pthread_attr_destroy(&attr);
@@ -101,14 +115,14 @@ int main (int argc, char *argv[]){
 
 //seccion critica de los hilos
 void *imprime(void *t){
-  int contA = 0,contB = 0,contC=0;
   char c = (char) t;
-  //printf("%c\n", c);
-  printf("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ");
-  while(indiceCola != NULL){
-    printf("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWw");
-    printf("%c\n", indiceCola->nombre);
-    if(indiceCola->nombre == 'c' && contC < globalContC){
+  printf("-----> %c <-----\n", verDatoPrimerElelemento());
+  printf("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ\n");
+  //printf("%c\n", indiceCola->nombre);
+  while(verDatoPrimerElelemento() != NULL){
+    printf("---------------------------------------------------------\n");
+    printf("-----> %c <----- |||| -----> %i <-----\n", verDatoPrimerElelemento(), globalContC);
+    if(verDatoPrimerElelemento() == 'C' && contC < globalContC){
       contC++;
       pthread_mutex_lock(&count_mutex);
       indiceCola = extraer();
@@ -116,7 +130,7 @@ void *imprime(void *t){
       contC--;
       pthread_mutex_unlock(&count_mutex);
     }
-    if(indiceCola->nombre == 'b' && contB < globalContB){
+    if(verDatoPrimerElelemento() == 'B' && contB < globalContB){
       contB++;
       pthread_mutex_lock(&count_mutex);
       indiceCola = extraer();
@@ -124,7 +138,7 @@ void *imprime(void *t){
       contB--;
       pthread_mutex_unlock(&count_mutex);
     }
-    if(indiceCola->nombre == 'a' && contA < globalContA){
+    if(verDatoPrimerElelemento() == 'A' && contA < globalContA){
       contA++;
       pthread_mutex_lock(&count_mutex);
       indiceCola = extraer();
