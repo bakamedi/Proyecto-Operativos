@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+//estrucutra de la cola
 typedef struct Elemento{
     struct elemento *proximo;
     char *nombre;
@@ -11,14 +12,16 @@ Elemento *primer = NULL;
 Elemento *ultimo = NULL;
 Elemento* indiceCola;
 
+
+//variables globales para la suspencion de hilos
 int globalContC;
 int globalContB;
 int globalContA;
 
-
 int contA = 0;
 int contB = 0;
 int contC = 0;
+
 pthread_mutex_t count_mutex;  //mutex for count increase critical section
 pthread_cond_t count_threshold_cv; //condition variable
 
