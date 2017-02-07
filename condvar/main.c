@@ -31,6 +31,9 @@ void *imprime(void *t);
 void agregar(Elemento* elemento);
 Elemento* extraer();
 char verDatoPrimerElelemento();
+void *imprimePrioridadC(void *t);
+void *imprimePrioridadB(void *t);
+void *imprimePrioridadA(void *t);
 
 int main (int argc, char *argv[]){
 
@@ -38,8 +41,6 @@ int main (int argc, char *argv[]){
   indiceCola = extraer();
   char seq[6]="ABCCCC";//dato de entrada
   int i, rc, numHilos = 0,numHilosC = 0,numHilosB = 0,numHilosA = 0,numHilosTotal = 0;
-  char prioridadC = 'c', prioridadB = 'b', prioridadA = 'a';
-
 
   //llena la cola con los caracteres CBA
   for(i = 5; i >= 0 ; i --){
@@ -51,10 +52,8 @@ int main (int argc, char *argv[]){
     }
   }
 
-
   printf("ingrese el numero de hilos\n");
   scanf("%i", &numHilos);
-
 
 
   numHilosC = numHilos;
@@ -82,30 +81,19 @@ int main (int argc, char *argv[]){
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
   for(i = 0 ; i < numHilosC ; i++){
-    pthread_create(&threadsCBA[i], &attr, imprime, (void *) prioridadC);
+    pthread_create(&threadsCBA[i], &attr, imprimePrioridadC, (void *) i);
     pthread_join(threadsCBA[i], NULL);
   }
 
   for(i = numHilosC ; i < numHilosC+numHilosB ;i++){
-    pthread_create(&threadsCBA[i], &attr, imprime, (void *) prioridadB);
+    pthread_create(&threadsCBA[i], &attr, imprimePrioridadB, (void *) i);
     pthread_join(threadsCBA[i], NULL);
   }
 
   for(i = numHilosC+numHilosB ; i < numHilosC+numHilosB+numHilosA ; i++){
-    pthread_create(&threadsCBA[i], &attr, imprime, (void *) prioridadA);
+    pthread_create(&threadsCBA[i], &attr, imprimePrioridadA, (void *) i);
     pthread_join(threadsCBA[i], NULL);
   }
-
-
-  /*
-  Elemento* indice = extraer();
-  printf("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n");
-
-  while(indice != NULL){
-      printf("%c\n", indice->nombre);
-      indice = extraer();
-  }
-  */
 
   /* Clean up and exit */
   pthread_attr_destroy(&attr);
@@ -116,43 +104,68 @@ int main (int argc, char *argv[]){
 }
 
 
-//seccion critica de los hilos
-void *imprime(void *t){
-  char c = (char) t;
-  printf("-----> %c <-----\n", verDatoPrimerElelemento());
-  printf("ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ\n");
-  //printf("%c\n", indiceCola->nombre);
-  while(verDatoPrimerElelemento() != NULL){
-    printf("---------------------------------------------------------\n");
-    printf("-----> %c <----- |||| -----> %i <-----\n", verDatoPrimerElelemento(), globalContC);
+//critic section
+void *imprimePrioridadC(void *t){
+  char id = (int) t;
+  printf("HILO C-----> %i <-----", id);
+  printf("veo el primer elemento de la cola es %c\n",verDatoPrimerElelemento());
+  while (verDatoPrimerElelemento()!=NULL) {
+    printf("%c  ---- contC =  %i\n",verDatoPrimerElelemento(),contC);
+    sleep(2);
     if(verDatoPrimerElelemento() == 'C' && contC < globalContC){
+      printf("%i\n",contC);
       contC++;
       pthread_mutex_lock(&count_mutex);
       indiceCola = extraer();
-      printf("%c\n", indiceCola->nombre);
+      printf("Saco de la cola el elemento %c\n", indiceCola->nombre);
       contC--;
       pthread_mutex_unlock(&count_mutex);
     }
-    if(verDatoPrimerElelemento() == 'B' && contB < globalContB){
+  }
+}
+
+
+void *imprimePrioridadB(void *t){
+  char id = (int) t;
+  sleep(2);
+  printf("HILO B-----> %i <-----", id);
+  printf("veo el primer elemento de la cola es %c\n",verDatoPrimerElelemento());
+  sleep(2);
+  while (verDatoPrimerElelemento()!=NULL) {
+    printf("%c  ---- contC =  %i\n",verDatoPrimerElelemento(),contC);
+    sleep(2);
+    if(verDatoPrimerElelemento() == 'B' && contC == 0){
       contB++;
       pthread_mutex_lock(&count_mutex);
       indiceCola = extraer();
-      printf("%c\n", indiceCola->nombre);
+      printf("Saco de la cola el elemento %c\n", indiceCola->nombre);
       contB--;
       pthread_mutex_unlock(&count_mutex);
     }
-    if(verDatoPrimerElelemento() == 'A' && contA < globalContA){
+  }
+}
+
+
+void *imprimePrioridadA(void *t){
+  char id = (int) t;
+  printf("HILO A-----> %i <-----", id);
+  printf("veo el primer elemento de la cola es %c\n",verDatoPrimerElelemento());
+  sleep(2);
+  while (verDatoPrimerElelemento()!=NULL) {
+    printf("%c  ---- contB =  %i\n",verDatoPrimerElelemento(),contB);
+    sleep(2);
+    if(verDatoPrimerElelemento() == 'A' && contB == 0){
       contA++;
       pthread_mutex_lock(&count_mutex);
       indiceCola = extraer();
-      printf("%c\n", indiceCola->nombre);
+      printf("Saco de la cola el elemento %c\n", indiceCola->nombre);
       contA--;
       pthread_mutex_unlock(&count_mutex);
     }
   }
-
 }
-//////////funciones de la COLA////////////
+
+//////////function of the QUEUE////////////
 void agregar(Elemento* elemento){
     //comprobando si la cola esta vacia
     elemento->proximo = NULL;
@@ -185,46 +198,3 @@ char verDatoPrimerElelemento(){
   return c;
 }
 
-////////////////////////////////////////
-
-/*
-void *inc_count(void *t)
-{
-  int i;
-  long my_id = (long)t;
-
-  printf("Starting thread %ld\n", my_id);
-  for (i=0; i<TCOUNT; i++) {
-    pthread_mutex_lock(&count_mutex);
-    count++;
-
-    if (count == COUNT_LIMIT) {
-      pthread_cond_signal(&count_threshold_cv);
-      printf("thread %ld, count = %d  Threshold reached.\n", my_id, count);
-      }
-    printf("thread %ld, count = %d, unlocking mutex\n",  my_id, count);
-    pthread_mutex_unlock(&count_mutex);
-
-    sleep(1);
-    }
-  pthread_exit(NULL);
-}
-
-void *watch_count(void *t)
-{
-  long my_id = (long)t;
-
-  printf("Starting thread %ld\n", my_id);
-
-  pthread_mutex_lock(&count_mutex);
-  while (count<COUNT_LIMIT) {
-    printf("thread %ld suspended.\n", my_id);
-    pthread_cond_wait(&count_threshold_cv, &count_mutex);
-    printf("thread %ld Condition signal received.\n", my_id);
-    count += 125;
-    printf("thread %ld count now = %d.\n", my_id, count);
-    }
-  pthread_mutex_unlock(&count_mutex);
-  pthread_exit(NULL);
-}
-*/
