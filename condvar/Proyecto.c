@@ -5,7 +5,7 @@
 #include "list.h"
 #include "nodelist.h"
 #include "queue.h"
-#include "stack.h"
+//#include "stack.h"
 
 //variables globales para la suspencion de hilos
 int globalContC;
@@ -42,12 +42,12 @@ Queue *colaPrioridad;
 int main (int argc, char *argv[]){
 
   colaPrioridad = queueNew();
-  char seq[6]="AAABCCCCC";//dato de entrada //probar
+  char seq[9]="AAABCCCBC";//dato de entrada //probar
   int i, rc, numHilos = 0,numHilosC = 0,numHilosB = 0,numHilosA = 0;
 
 
   //llena la cola con los caracteres CBA
-  for(i = 5; i >= 0 ; i --){
+  for(i = sizeof(seq -1); i >= 0 ; i --){
     nodoCaracter = nodeListNew(seq[i]);
     if(nodoCaracter!=NULL){
       nodoCaracter = nodeListNew(seq[i]);
@@ -308,4 +308,3 @@ void imprimeCola(Queue *cola){
   }
   printf("\n");
 }
-
