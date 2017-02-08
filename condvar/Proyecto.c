@@ -5,7 +5,7 @@
 #include "list.h"
 #include "nodelist.h"
 #include "queue.h"
-
+#include "stack.h"
 
 //variables globales para la suspencion de hilos
 int globalContC;
@@ -16,20 +16,34 @@ int contA = 0;
 int contB = 0;
 int contC = 0;
 
+int numHilosTotal = 0;
+int despertar = 1;
+int dormir = 0;
+
 pthread_mutex_t count_mutex;  //mutex for count increase critical section
 pthread_cond_t count_threshold_cv; //condition variable
+pthread_attr_t attr;
 
+void *asignarCaracterHilo(void *t);
 void *imprimePrioridadC(void *t);
 void *imprimePrioridadB(void *t);
 void *imprimePrioridadA(void *t);
+void prioridadC(NodeList *e,int id);
+void *asignarCaracterHiloC(void *t);
+void *asignarCaracterHiloB(void *t);
+void *asignarCaracterHiloA(void *t);
+void imprimeCola(Queue *cola);
 
-NodeList *nodoCaracter;
+
+
+NodeList *nodoCaracter,*nodoHilo;
 Queue *colaPrioridad;
 
 int main (int argc, char *argv[]){
+
   colaPrioridad = queueNew();
-  char seq[6]="ABCCCC";//dato de entrada
-  int i, rc, numHilos = 0,numHilosC = 0,numHilosB = 0,numHilosA = 0,numHilosTotal = 0;
+  char seq[6]="AAABCCCCC";//dato de entrada //probar
+  int i, rc, numHilos = 0,numHilosC = 0,numHilosB = 0,numHilosA = 0;
 
 
   //llena la cola con los caracteres CBA
@@ -53,13 +67,20 @@ int main (int argc, char *argv[]){
   globalContC = numHilosC;
   globalContB = numHilosB;
 
-
+  if(numHilosC == 0){
+    numHilosC = 1;
+    globalContC = numHilosC;
+  }
+  if(numHilosB == 0){
+    numHilosB = 1;
+    globalContB = numHilosB;
+  }
   if(numHilosA == 0){
     numHilosA = 1;
     globalContA = numHilosA;
   }
 
-  pthread_attr_t attr;
+  
   pthread_t threadsCBA[numHilosTotal];
   /* Initialize mutex and condition variable objects */
   pthread_mutex_init(&count_mutex, NULL);
@@ -69,10 +90,25 @@ int main (int argc, char *argv[]){
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-  
   for(i = 0 ; i < numHilosC ; i++){
-    pthread_create(&threadsCBA[i], &attr, imprimePrioridadC, (void *) i);
-    pthread_join(threadsCBA[i], NULL);
+    pthread_create(&threadsCBA[i], &attr, asignarCaracterHiloC, (void *)i);
+    //pthread_join(threadsCBA[i], NULL);
+  }
+  for(i = numHilosC ; i < numHilosC+numHilosB ;i++){
+    pthread_create(&threadsCBA[i], &attr, asignarCaracterHiloB, (void *)i);
+    //pthread_join(threadsCBA[i], NULL);
+  }
+  for(i = numHilosC+numHilosB ; i < numHilosC+numHilosB+numHilosA ; i++){
+    pthread_create(&threadsCBA[i], &attr, asignarCaracterHiloA, (void *)i);
+    //pthread_join(threadsCBA[i], NULL);
+  }
+
+
+  //asignarCaracterHilo(pilaHiloC,pilaHiloB,pilaHiloA,colaPrioridad);
+
+  /*
+  for(i = 0 ; i < numHilosC ; i++){
+    c
   }
 
   for(i = numHilosC ; i < numHilosC+numHilosB ;i++){
@@ -84,7 +120,9 @@ int main (int argc, char *argv[]){
     pthread_create(&threadsCBA[i], &attr, imprimePrioridadA, (void *) i);
     pthread_join(threadsCBA[i], NULL);
   }
+  */
   
+
 
   /* Clean up and exit */
   pthread_attr_destroy(&attr);
@@ -95,6 +133,87 @@ int main (int argc, char *argv[]){
 }
 
 
+void *asignarCaracterHiloC(void *t){
+  int i = (int) t;
+  while(despertar == 1){
+    if(dormir == 1){
+      despertar = 0;
+    }
+    printf("\nHILO C DORMIDO \n",i);
+  }
+  printf("\n-----------------------------------------------------------------\n");
+  int id = (int) t;
+  imprimeCola(colaPrioridad);
+  while (!queueIsEmpty(colaPrioridad)) {
+    sleep(2);
+    if((char)(nodeListGetCont(queuePeekFront(colaPrioridad))) == 'C'){
+      pthread_mutex_lock(&count_mutex);
+      nodoCaracter = queueDequeue(colaPrioridad);
+      prioridadC(nodoCaracter,id);
+      imprimeCola(colaPrioridad);
+      pthread_mutex_unlock(&count_mutex);
+      break;
+    }
+  }
+  printf("\n-----------------------------------------------------------------\n");
+}
+
+void *asignarCaracterHiloB(void *t){
+
+  while(despertar == 1){
+    if(dormir == 1){
+      despertar = 0;
+    }
+    printf("\nHILO B DORMIDO\n");
+  }
+  printf("\n-----------------------------------------------------------------\n");
+  int id = (int) t;
+  imprimeCola(colaPrioridad);
+  while (!queueIsEmpty(colaPrioridad)) {
+    sleep(2);
+    if((char)(nodeListGetCont(queuePeekFront(colaPrioridad))) == 'B'){
+      pthread_mutex_lock(&count_mutex);
+      nodoCaracter = queueDequeue(colaPrioridad);
+      prioridadC(nodoCaracter,id);
+      imprimeCola(colaPrioridad);
+      pthread_mutex_unlock(&count_mutex);
+      break;
+    }
+  }
+  printf("\n-----------------------------------------------------------------\n");
+}
+
+void *asignarCaracterHiloA(void *t){
+  int bandera = (int) t;
+  while(despertar == 1){    
+    if(bandera == numHilosTotal-1){
+      printf("\n\nDESPIERTA TODOS LOS HILOS\n\n");
+      dormir = 1;
+    }
+    printf("\n\nHILO B DORMIDO\n\n");
+  }
+  printf("\n-----------------------------------------------------------------\n");
+  int id = (int) t;
+  imprimeCola(colaPrioridad);
+  while (!queueIsEmpty(colaPrioridad)) {
+    sleep(2);
+    if((char)(nodeListGetCont(queuePeekFront(colaPrioridad))) == 'A'){
+      pthread_mutex_lock(&count_mutex);
+      nodoCaracter = queueDequeue(colaPrioridad);
+      prioridadC(nodoCaracter,id);
+      imprimeCola(colaPrioridad);
+      pthread_mutex_unlock(&count_mutex);
+    }
+  }
+  printf("\n-----------------------------------------------------------------\n");
+}
+
+
+void prioridadC(NodeList *e, int i){
+  char car = (char) nodeListGetCont(e);
+  printf("\nElemento : %c sacado por Hilo : %i\n", car,i);
+}
+/*
 //critic section
 void *imprimePrioridadC(void *t){
   int id = (int) t;
@@ -180,11 +299,13 @@ void *imprimePrioridadA(void *t){
   }
   printf("\n-----------------------------------------------------------------\n");
 }
-
+*/
 void imprimeCola(Queue *cola){
   NodeList* i;
-  printf("COLA: ");
+  printf("\nCOLA: ");
   for(i = colaPrioridad->header;i !=NULL ;i = i->next){
     printf(" %c ", (char)(nodeListGetCont(i)));
   }
+  printf("\n");
 }
+
