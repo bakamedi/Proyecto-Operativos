@@ -136,7 +136,7 @@ void *imprimePrioridadB(void *t){
   while (!queueIsEmpty(colaPrioridad)) {
     printf("%c  ---- contC =  %i\n",(char)(nodeListGetCont(queuePeekFront(colaPrioridad))),contC);
     sleep(2);
-    if((char)(nodeListGetCont(queuePeekFront(colaPrioridad))) == 'C' && contC == 0){
+    if((char)(nodeListGetCont(queuePeekFront(colaPrioridad))) == 'B' && contC == 0){
       printf("%i\n",contC);
       contC++;
       pthread_mutex_lock(&count_mutex);
