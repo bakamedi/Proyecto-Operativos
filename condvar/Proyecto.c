@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
   
   //ordena la seq
   qsort(seq, strlen(seq), 1, fn_Comparar);
-  printf("Cadena ordenada: \"%s\"\n", seq);
+  //printf("Cadena ordenada: \"%s\"\n", seq);
   
   pthread_t th1, thEscritor, th3, th4;
   pthread_mutex_init(&mutexC, NULL);
@@ -58,12 +58,13 @@ int main(int argc, char *argv[]) {
  * Código del escritor
  */
 void Escritor(void) { 
+ int tamPaquete = sizeof(seq);
  pthread_mutex_lock(&mutexC);
   
  //realizar funcion que reciba siempre un solo valor y lo escriba en la cola correspondiente
- printf("%d\n",sizeof(seq));
- int tamPaquete = sizeof(seq);
- asignarPqte(seq,valA, colaC, nodoC,tamPaquete);
+ 
+ 
+ asignarPqte(seq,valC, colaC, nodoC,tamPaquete);
  pthread_mutex_unlock(&mutexC);
  pthread_exit(0);
 }
@@ -94,19 +95,19 @@ void Lector(void) {
  */
 void asignarPqte(char seq[], char val[], Queue *cola, NodeList *nodo,int tamPaquete){
  int i;
- printf("%i\n", tamPaquete);
+ //printf("%i\n", tamPaquete);
  for(i = 0; i < tamPaquete; i++){  
-  printf("%c\n", seq[i]);
+  //printf("%c\n", seq[i]);
   /*Escribe en C*/
-  /*
+  
   if(seq[i]==val[0]){   
    nodo = nodeListNew(seq[i]);
    if(nodo!=NULL){
    nodo = nodeListNew(seq[i]);
    queueEnqueue(cola,nodo);  
-   printf("\nCola: %c\n",(char)nodeListGetCont(nodo));   
+   //printf("\nCola: %c\n",(char)nodeListGetCont(nodo));   
    }
-  }*/
+  }
  }
 }
 
@@ -115,7 +116,7 @@ void asignarPqte(char seq[], char val[], Queue *cola, NodeList *nodo,int tamPaqu
  */
 void imprimirBuffer(Queue *cola){
   NodeList* i;
-  printf("\nCOLA: ");
+  printf("\nBuffer: ");
   for(i = cola->header;i !=NULL ;i = i->next){
     printf(" %c ", (char)(nodeListGetCont(i)));
   }
@@ -123,8 +124,8 @@ void imprimirBuffer(Queue *cola){
 }
 
 /*
-  *compara 2 valores
-*/
+ *Compara 2 valores
+ */
 int fn_Comparar(void const *pa, void const *pb){
   char a = *((char *) pa);
   char b = *((char *) pb);   
