@@ -20,7 +20,7 @@ pthread_mutex_t mlectores; /* controla acceso de m lectores */
 void Escritor(void);
 void Lector(void);
 void imprimirBuffer(Queue *cola);
-void asignarPqte(char seq[], char val[], Queue *cola, NodeList *nodo);
+void asignarPqte(char letra, Queue *cola, NodeList *nodo);
 
 int main(int argc, char *argv[]) {
  colaC = queueNew(); /*cola c*/
@@ -54,8 +54,9 @@ void Escritor(void) {
  pthread_mutex_lock(&mutexC);
   
  //realizar funcion que reciba siempre un solo valor y lo escriba en la cola correspondiente
- printf("%d\n",sizeof(valA));
- asignarPqte(seq,valA, colaC, nodoC);
+ asignarPqte('C', colaC, nodoC);
+ asignarPqte('B', colaB, nodoB);
+ asignarPqte('A', colaA, nodoA);
   
  pthread_mutex_unlock(&mutexC);
  pthread_exit(0);
@@ -72,8 +73,8 @@ void Lector(void) {
  pthread_mutex_unlock(&mlectores);
   /*leer dato buffer C*/
   imprimirBuffer(colaC);
-  //imprimirBuffer(colaB);
-  //imprimirBuffer(colaA);
+  imprimirBuffer(colaB);
+  imprimirBuffer(colaA);
  pthread_mutex_lock(&mlectores);
  lectores--;
  if (lectores == 0) 
@@ -85,16 +86,17 @@ void Lector(void) {
 /*
  * Destinar datos a paquetes
  */
-void asignarPqte(char seq[], char val[], Queue *cola, NodeList *nodo){
+void asignarPqte(char letra,Queue *cola, NodeList *nodo){
  int i;
+ char l = letra;
  for(i = 0; i < sizeof(seq); i++){  
   /*Escribe en C*/
-  if(seq[i]==val[0]){   
+  if(seq[i]==l){   
    nodo = nodeListNew(seq[i]);
    if(nodo!=NULL){
    nodo = nodeListNew(seq[i]);
    queueEnqueue(cola,nodo);  
-   printf("\nCola: %c\n",(char)nodeListGetCont(nodo));   
+   //printf("\nCola: %c\n",(char)nodeListGetCont(nodo));   
    }
   }
  }
