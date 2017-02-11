@@ -5,305 +5,120 @@
 #include "list.h"
 #include "nodelist.h"
 #include "queue.h"
-//#include "stack.h"
 
-//variables globales para la suspencion de hilos
-int globalContC;
-int globalContB;
-int globalContA;
+int datoC = 6; /* recurso C */
+int datoB = 0; /* recurso B */
+char seq[6]="BABCAC"; /* paquete 1 */
+char valC[1]="C";
+char valB[1]="B";
+char valA[1]="A";
+NodeList *nodoC, *nodoB, *nodoA;
+Queue *colaC, *colaB, *colaA;
 
-int contA = 0;
-int contB = 0;
-int contC = 0;
+int lectores = 0; /* numero de lectores, recurso*/
+pthread_mutex_t mutexC; /* controla acceso al dato C */
+pthread_mutex_t mutexB; /* controla acceso al dato B */
+pthread_mutex_t mlectores; /* controla acceso de m lectores */
+void Escritor(void);
+void Lector(void);
+void imprimirBuffer(Queue *cola);
 
-int numHilosTotal = 0;
-int despertar = 1;
-int dormir = 0;
-
-pthread_mutex_t count_mutex;  //mutex for count increase critical section
-pthread_cond_t count_threshold_cv; //condition variable
-pthread_attr_t attr;
-
-void *asignarCaracterHilo(void *t);
-void *imprimePrioridadC(void *t);
-void *imprimePrioridadB(void *t);
-void *imprimePrioridadA(void *t);
-void prioridadC(NodeList *e,int id);
-void *asignarCaracterHiloC(void *t);
-void *asignarCaracterHiloB(void *t);
-void *asignarCaracterHiloA(void *t);
-void imprimeCola(Queue *cola);
-
-
-
-NodeList *nodoCaracter,*nodoHilo;
-Queue *colaPrioridad;
-
-int main (int argc, char *argv[]){
-
-  colaPrioridad = queueNew();
-  char seq[9]="AAABCCCBC";//dato de entrada //probar
-  int i, rc, numHilos = 0,numHilosC = 0,numHilosB = 0,numHilosA = 0;
-
-
-  //llena la cola con los caracteres CBA
-  for(i = sizeof(seq -1); i >= 0 ; i --){
-    nodoCaracter = nodeListNew(seq[i]);
-    if(nodoCaracter!=NULL){
-      nodoCaracter = nodeListNew(seq[i]);
-      queueEnqueue(colaPrioridad,nodoCaracter);
-      printf("  Datos agregado a la COLA : %c\n",(char) nodeListGetCont(nodoCaracter));
-    }
-  }
-
-  printf("ingrese el numero de hilos\n");
-  scanf("%i", &numHilos);
-
-  numHilosC = numHilos;
-  numHilosB = numHilos/2;
-  numHilosA = numHilos/4;
-  numHilosTotal = numHilosA+numHilosB+numHilosC;
-
-  globalContC = numHilosC;
-  globalContB = numHilosB;
-
-  if(numHilosC == 0){
-    numHilosC = 1;
-    globalContC = numHilosC;
-  }
-  if(numHilosB == 0){
-    numHilosB = 1;
-    globalContB = numHilosB;
-  }
-  if(numHilosA == 0){
-    numHilosA = 1;
-    globalContA = numHilosA;
-  }
-
+int main(int argc, char *argv[]) {
+ colaC = queueNew(); /*cola c*/
+ colaB = queueNew(); /*cola b*/
+ colaA = queueNew(); /*cola a*/
+ pthread_t th1, th2, th3, th4;
+ pthread_mutex_init(&mutexC, NULL);
+ pthread_mutex_init(&mlectores, NULL);
+ pthread_create(&th1, NULL, (void*)Lector, NULL);
+ pthread_create(&th2, NULL, (void*)Escritor, NULL);
+ pthread_create(&th3, NULL, (void*)Lector, NULL);
+ //pthread_create(&th4, NULL, (void*)Escritor, NULL);
+ pthread_create(&th5, NULL, (void*)Lector, NULL);
   
-  pthread_t threadsCBA[numHilosTotal];
-  /* Initialize mutex and condition variable objects */
-  pthread_mutex_init(&count_mutex, NULL);
-  pthread_cond_init (&count_threshold_cv, NULL);
-
-  /* Create threads in a joinable state */
-  pthread_attr_init(&attr);
-  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-
-  for(i = 0 ; i < numHilosC ; i++){
-    pthread_create(&threadsCBA[i], &attr, asignarCaracterHiloC, (void *)i);
-    //pthread_join(threadsCBA[i], NULL);
-  }
-  for(i = numHilosC ; i < numHilosC+numHilosB ;i++){
-    pthread_create(&threadsCBA[i], &attr, asignarCaracterHiloB, (void *)i);
-    //pthread_join(threadsCBA[i], NULL);
-  }
-  for(i = numHilosC+numHilosB ; i < numHilosC+numHilosB+numHilosA ; i++){
-    pthread_create(&threadsCBA[i], &attr, asignarCaracterHiloA, (void *)i);
-    //pthread_join(threadsCBA[i], NULL);
-  }
-
-
-  //asignarCaracterHilo(pilaHiloC,pilaHiloB,pilaHiloA,colaPrioridad);
-
-  /*
-  for(i = 0 ; i < numHilosC ; i++){
-    c
-  }
-
-  for(i = numHilosC ; i < numHilosC+numHilosB ;i++){
-    pthread_create(&threadsCBA[i], &attr, imprimePrioridadB, (void *) i);
-    pthread_join(threadsCBA[i], NULL);
-  }
-
-  for(i = numHilosC+numHilosB ; i < numHilosC+numHilosB+numHilosA ; i++){
-    pthread_create(&threadsCBA[i], &attr, imprimePrioridadA, (void *) i);
-    pthread_join(threadsCBA[i], NULL);
-  }
-  */
+ pthread_join(th1, NULL);
+ pthread_join(th2, NULL);
+ pthread_join(th3, NULL);
+ //pthread_join(th4, NULL);
+ pthread_join(th5, NULL);
   
-
-
-  /* Clean up and exit */
-  pthread_attr_destroy(&attr);
-  pthread_mutex_destroy(&count_mutex);
-  pthread_cond_destroy(&count_threshold_cv);
-  pthread_exit(NULL);
-
+ pthread_mutex_destroy(&mutexC);
+ pthread_mutex_destroy(&mlectores);
+  
+ exit(0);
 }
-
-
-void *asignarCaracterHiloC(void *t){
-  int i = (int) t;
-  while(despertar == 1){
-    if(dormir == 1){
-      despertar = 0;
-    }
-    printf("\nHILO C DORMIDO \n",i);
-  }
-  printf("\n-----------------------------------------------------------------\n");
-  int id = (int) t;
-  imprimeCola(colaPrioridad);
-  while (!queueIsEmpty(colaPrioridad)) {
-    sleep(2);
-    if((char)(nodeListGetCont(queuePeekFront(colaPrioridad))) == 'C'){
-      pthread_mutex_lock(&count_mutex);
-      nodoCaracter = queueDequeue(colaPrioridad);
-      prioridadC(nodoCaracter,id);
-      imprimeCola(colaPrioridad);
-      pthread_mutex_unlock(&count_mutex);
-      break;
-    }
-  }
-  printf("\n-----------------------------------------------------------------\n");
-}
-
-void *asignarCaracterHiloB(void *t){
-
-  while(despertar == 1){
-    if(dormir == 1){
-      despertar = 0;
-    }
-    printf("\nHILO B DORMIDO\n");
-  }
-  printf("\n-----------------------------------------------------------------\n");
-  int id = (int) t;
-  imprimeCola(colaPrioridad);
-  while (!queueIsEmpty(colaPrioridad)) {
-    sleep(2);
-    if((char)(nodeListGetCont(queuePeekFront(colaPrioridad))) == 'B'){
-      pthread_mutex_lock(&count_mutex);
-      nodoCaracter = queueDequeue(colaPrioridad);
-      prioridadC(nodoCaracter,id);
-      imprimeCola(colaPrioridad);
-      pthread_mutex_unlock(&count_mutex);
-      break;
-    }
-  }
-  printf("\n-----------------------------------------------------------------\n");
-}
-
-void *asignarCaracterHiloA(void *t){
-  int bandera = (int) t;
-  while(despertar == 1){    
-    if(bandera == numHilosTotal-1){
-      printf("\n\nDESPIERTA TODOS LOS HILOS\n\n");
-      dormir = 1;
-    }
-    printf("\n\nHILO B DORMIDO\n\n");
-  }
-  printf("\n-----------------------------------------------------------------\n");
-  int id = (int) t;
-  imprimeCola(colaPrioridad);
-  while (!queueIsEmpty(colaPrioridad)) {
-    sleep(2);
-    if((char)(nodeListGetCont(queuePeekFront(colaPrioridad))) == 'A'){
-      pthread_mutex_lock(&count_mutex);
-      nodoCaracter = queueDequeue(colaPrioridad);
-      prioridadC(nodoCaracter,id);
-      imprimeCola(colaPrioridad);
-      pthread_mutex_unlock(&count_mutex);
-    }
-  }
-  printf("\n-----------------------------------------------------------------\n");
-}
-
-
-void prioridadC(NodeList *e, int i){
-  char car = (char) nodeListGetCont(e);
-  printf("\nElemento : %c sacado por Hilo : %i\n", car,i);
-}
+ 
 /*
-//critic section
-void *imprimePrioridadC(void *t){
-  int id = (int) t;
-  printf("\n-----------------------------------------------------------------\n");
-  printf("HILO C , ID: %i\n", id);
-  printf("veo el primer elemento de la cola es %c\n",(char)(nodeListGetCont(queuePeekFront(colaPrioridad))));
-  sleep(2);
-  printf("EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\n");
-  imprimeCola(colaPrioridad);
-  printf("EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\n");
-  while (!queueIsEmpty(colaPrioridad)) {
-    printf("%c  ---- contC =  %i\n",(char)(nodeListGetCont(queuePeekFront(colaPrioridad))),contC);
-    sleep(2);
-    if((char)(nodeListGetCont(queuePeekFront(colaPrioridad))) == 'C' && contC < globalContC){
-      printf("%i\n",contC);
-      contC++;
-      pthread_mutex_lock(&count_mutex);
-      nodoCaracter = queueDequeue(colaPrioridad);
-      printf("Saco de la cola el elemento %c\n", (char)nodeListGetCont(nodoCaracter));
-      imprimeCola(colaPrioridad);
-      contC--;
-      pthread_mutex_unlock(&count_mutex);
-      break;
+ * Código del escritor
+ */
+void Escritor(void) { 
+ int i;
+ pthread_mutex_lock(&mutexC);
+  
+ //datoC = datoC + 2; /* aumenta el dato*/
+ //realizar funcion que reciba siempre un solo valor y lo escriba en la cola correspondiente
+ for(i = 0; i < sizeof(seq); i++){  
+  /*Escribe en C*/
+  if(seq[i]==valC[0]){   
+   nodoC = nodeListNew(seq[i]);
+    if(nodoC!=NULL){
+     nodoC = nodeListNew(seq[i]);
+     queueEnqueue(colaC,nodoC);  
+     //printf("Cola C: %c\n",(char)nodeListGetCont(nodoC));   
     }
-  }
-  printf("\n-----------------------------------------------------------------\n");
+   }
+   /*Escribe en B*/
+   if(seq[i]==valB[0]){
+   nodoB = nodeListNew(seq[i]);
+    if(nodoB!=NULL){
+     nodoB = nodeListNew(seq[i]);
+     queueEnqueue(colaB,nodoB);
+     //printf("Cola B: %c\n",(char)nodeListGetCont(nodoB));
+    }
+   }
+   /*Escribe en A*/
+   if(seq[i]==valA[0]){
+   nodoA = nodeListNew(seq[i]);
+    if(nodoA!=NULL){
+     nodoA = nodeListNew(seq[i]);
+     queueEnqueue(colaA,nodoA);
+     //printf("Cola A: %c\n",(char)nodeListGetCont(nodoA));
+    }
+   }
+ }
+  
+ pthread_mutex_unlock(&mutexC);
+ pthread_exit(0);
+}
+ 
+/*
+ * Código del lector
+ */
+void Lector(void) { 
+ pthread_mutex_lock(&mlectores);
+ lectores++;
+ if (lectores == 1) 
+  pthread_mutex_lock(&mutexC);
+ pthread_mutex_unlock(&mlectores);
+  /*leer dato buffer C*/
+  imprimirBuffer(colaC);
+  imprimirBuffer(colaB);
+  imprimirBuffer(colaA);
+ pthread_mutex_lock(&mlectores);
+ lectores--;
+ if (lectores == 0) 
+  pthread_mutex_unlock(&mutexC);
+ pthread_mutex_unlock(&mlectores);
+ pthread_exit(0);
 }
 
-
-void *imprimePrioridadB(void *t){
-  int id = (int) t;
-  printf("\n-----------------------------------------------------------------\n");
-  printf("HILO B , ID: %i\n", id);
-  printf("veo el primer elemento de la cola es %c\n",(char)(nodeListGetCont(queuePeekFront(colaPrioridad))));
-  sleep(2);
-  printf("EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\n");
-  imprimeCola(colaPrioridad);
-  printf("EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\n");
-  while (!queueIsEmpty(colaPrioridad)) {
-    printf("%c  ---- contC =  %i\n",(char)(nodeListGetCont(queuePeekFront(colaPrioridad))),contC);
-    sleep(2);
-    if((char)(nodeListGetCont(queuePeekFront(colaPrioridad))) == 'B' && contC == 0){
-      printf("%i\n",contC);
-      contC++;
-      pthread_mutex_lock(&count_mutex);
-      nodoCaracter = queueDequeue(colaPrioridad);
-      printf("Saco de la cola el elemento %c\n", (char)nodeListGetCont(nodoCaracter));
-      imprimeCola(colaPrioridad);
-      contC--;
-      pthread_mutex_unlock(&count_mutex);
-      break;
-    }
-  }
-  printf("\n-----------------------------------------------------------------\n");
-}
-
-
-void *imprimePrioridadA(void *t){
-  int id = (int) t;
-  printf("\n-----------------------------------------------------------------\n");
-  printf("HILO A , ID: %i\n", id);
-  printf("veo el primer elemento de la cola es %c\n",(char)(nodeListGetCont(queuePeekFront(colaPrioridad))));
-  sleep(2);
-  while (!queueIsEmpty(colaPrioridad)) {
-    printf("%c  ---- contC =  %i\n",(char)(nodeListGetCont(queuePeekFront(colaPrioridad))),contC);
-    sleep(2);
-    printf("EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\n");
-    imprimeCola(colaPrioridad);
-    printf("EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\n");
-    if((char)(nodeListGetCont(queuePeekFront(colaPrioridad))) == 'A' && contB == 0){
-      printf("%i\n",contC);
-      contC++;
-      pthread_mutex_lock(&count_mutex);
-      nodoCaracter = queueDequeue(colaPrioridad);
-      printf("Saco de la cola el elemento %c\n", (char)nodeListGetCont(nodoCaracter));
-      printf("EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\n");
-      imprimeCola(colaPrioridad);
-      printf("EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE\n");
-      contC--;
-      pthread_mutex_unlock(&count_mutex);
-      break;
-    }
-  }
-  printf("\n-----------------------------------------------------------------\n");
-}
-*/
-void imprimeCola(Queue *cola){
+/*
+ * Imprimir Buffer
+ */
+void imprimirBuffer(Queue *cola){
   NodeList* i;
   printf("\nCOLA: ");
-  for(i = colaPrioridad->header;i !=NULL ;i = i->next){
+  for(i = cola->header;i !=NULL ;i = i->next){
     printf(" %c ", (char)(nodeListGetCont(i)));
   }
   printf("\n");
