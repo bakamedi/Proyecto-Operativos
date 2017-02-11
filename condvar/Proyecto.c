@@ -1,12 +1,13 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "generic.h"
 #include "list.h"
 #include "nodelist.h"
 #include "queue.h"
 
-char seq[6]="BABCAC"; /* paquete 1 */
+char seq[]="BABCAC"; /* paquete 1 */
 char valC[1]="C";
 char valB[1]="B";
 char valA[1]="A";
@@ -20,31 +21,37 @@ pthread_mutex_t mlectores; /* controla acceso de m lectores */
 void Escritor(void);
 void Lector(void);
 void imprimirBuffer(Queue *cola);
-void asignarPqte(char letra, Queue *cola, NodeList *nodo);
+void asignarPqte(char seq[], char val[], Queue *cola, NodeList *nodo,int tamPaquete);
+int fn_Comparar(void const *a, void const *b);
 
 int main(int argc, char *argv[]) {
- colaC = queueNew(); /*cola c*/
- colaB = queueNew(); /*cola b*/
- colaA = queueNew(); /*cola a*/
- pthread_t th1, th2, th3, th4;
- pthread_mutex_init(&mutexC, NULL);
- pthread_mutex_init(&mlectores, NULL);
- pthread_create(&th1, NULL, (void*)Lector, NULL);
- pthread_create(&th2, NULL, (void*)Escritor, NULL);
- pthread_create(&th3, NULL, (void*)Lector, NULL);
- //pthread_create(&th4, NULL, (void*)Escritor, NULL);
- //pthread_create(&th5, NULL, (void*)Lector, NULL);
+  colaC = queueNew(); /*cola c*/
+  colaB = queueNew(); /*cola b*/
+  colaA = queueNew(); /*cola a*/
   
- pthread_join(th1, NULL);
- pthread_join(th2, NULL);
- pthread_join(th3, NULL);
- //pthread_join(th4, NULL);
- //pthread_join(th5, NULL);
+  //ordena la seq
+  qsort(seq, strlen(seq), 1, fn_Comparar);
+  printf("Cadena ordenada: \"%s\"\n", seq);
   
- pthread_mutex_destroy(&mutexC);
- pthread_mutex_destroy(&mlectores);
-  
- exit(0);
+  pthread_t th1, thEscritor, th3, th4;
+  pthread_mutex_init(&mutexC, NULL);
+  pthread_mutex_init(&mlectores, NULL);
+  pthread_create(&th1, NULL, (void*)Lector, NULL);
+  pthread_create(&thEscritor, NULL, (void*)Escritor, NULL);
+  //pthread_create(&th3, NULL, (void*)Lector, NULL);
+  //pthread_create(&th4, NULL, (void*)Escritor, NULL);
+  //pthread_create(&th5, NULL, (void*)Lector, NULL);
+   
+  pthread_join(th1, NULL);
+  //pthread_join(th2, NULL);
+  //pthread_join(th3, NULL);
+  //pthread_join(th4, NULL);
+  //pthread_join(th5, NULL);
+   
+  pthread_mutex_destroy(&mutexC);
+  pthread_mutex_destroy(&mlectores);
+   
+  exit(0);
 }
  
 /*
@@ -54,10 +61,9 @@ void Escritor(void) {
  pthread_mutex_lock(&mutexC);
   
  //realizar funcion que reciba siempre un solo valor y lo escriba en la cola correspondiente
- asignarPqte('C', colaC, nodoC);
- asignarPqte('B', colaB, nodoB);
- asignarPqte('A', colaA, nodoA);
-  
+ printf("%d\n",sizeof(seq));
+ int tamPaquete = sizeof(seq);
+ asignarPqte(seq,valA, colaC, nodoC,tamPaquete);
  pthread_mutex_unlock(&mutexC);
  pthread_exit(0);
 }
@@ -73,8 +79,8 @@ void Lector(void) {
  pthread_mutex_unlock(&mlectores);
   /*leer dato buffer C*/
   imprimirBuffer(colaC);
-  imprimirBuffer(colaB);
-  imprimirBuffer(colaA);
+  //imprimirBuffer(colaB);
+  //imprimirBuffer(colaA);
  pthread_mutex_lock(&mlectores);
  lectores--;
  if (lectores == 0) 
@@ -86,19 +92,21 @@ void Lector(void) {
 /*
  * Destinar datos a paquetes
  */
-void asignarPqte(char letra,Queue *cola, NodeList *nodo){
+void asignarPqte(char seq[], char val[], Queue *cola, NodeList *nodo,int tamPaquete){
  int i;
- char l = letra;
- for(i = 0; i < sizeof(seq); i++){  
+ printf("%i\n", tamPaquete);
+ for(i = 0; i < tamPaquete; i++){  
+  printf("%c\n", seq[i]);
   /*Escribe en C*/
-  if(seq[i]==l){   
+  /*
+  if(seq[i]==val[0]){   
    nodo = nodeListNew(seq[i]);
    if(nodo!=NULL){
    nodo = nodeListNew(seq[i]);
    queueEnqueue(cola,nodo);  
-   //printf("\nCola: %c\n",(char)nodeListGetCont(nodo));   
+   printf("\nCola: %c\n",(char)nodeListGetCont(nodo));   
    }
-  }
+  }*/
  }
 }
 
@@ -113,3 +121,14 @@ void imprimirBuffer(Queue *cola){
   }
   printf("\n");
 }
+
+/*
+  *compara 2 valores
+*/
+int fn_Comparar(void const *pa, void const *pb){
+  char a = *((char *) pa);
+  char b = *((char *) pb);   
+  
+  return b - a;
+}
+     
